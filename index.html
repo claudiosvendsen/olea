@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Olea">
+<meta name="theme-color" content="#1a3a1a">
+<title>Olea · Ventas</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --g8:#1a3a1a;--g7:#243d24;--g6:#2e5230;--g5:#3a6e3c;--g4:#4a8c4d;
+  --g3:#6aaf6d;--g2:#9fd1a1;--g1:#d4edcf;--g0:#edf7eb;
+  --gold:#c9973a;--gold-l:#f0c97a;--gold-bg:#fdf5e6;
+  --red:#c0392b;--red-bg:#fdecea;--blue:#1a73e8;--blue-d:#1557b0;
+  --bg:#f4f6f3;--card:#fff;--brd:#dde8da;
+  --txt:#1a2e1a;--mut:#5a7a5c;
+  --r:14px;--sh:0 1px 8px rgba(20,50,20,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--txt);min-height:100dvh;padding-bottom:calc(62px + env(safe-area-inset-bottom))}
+
+.topbar{background:var(--g8);padding:13px 16px;padding-top:calc(13px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:18px;font-weight:700;color:var(--g1);letter-spacing:-.4px}
+.logo span{color:var(--gold-l)}
+.sync-status{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g2);cursor:pointer}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--g3);flex-shrink:0;transition:background .3s}
+.sync-dot.syncing{background:var(--gold-l);animation:pulse .9s infinite}
+.sync-dot.error{background:#ff6b6b}
+.sync-dot.queued{background:var(--gold-l)}
+.sync-dot.offline{background:var(--mut)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--g8);border-top:1px solid var(--g7);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.tabbtn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 2px 7px;border:none;background:none;color:var(--g3);font-size:9px;font-weight:500;cursor:pointer;transition:color .15s}
+.tabbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbtn.active{color:var(--gold-l)}
+
+.page{display:none;padding:14px 13px}.page.active{display:block}
+
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--brd);box-shadow:var(--sh);padding:14px 13px;margin-bottom:11px}
+.clabel{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:8px}
+.sectit{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:14px 0 7px}
+
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+.metric{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:11px 10px;box-shadow:var(--sh)}
+.mlabel{font-size:10px;color:var(--mut);margin-bottom:2px}
+.mval{font-size:19px;font-weight:700;line-height:1.1}
+.mval.green{color:var(--g5)}.mval.gold{color:var(--gold)}.mval.red{color:var(--red)}
+.msub{font-size:10px;color:var(--mut);margin-top:2px}
+
+label{display:block;font-size:11px;font-weight:600;color:var(--mut);margin-bottom:4px}
+select,input[type=date],input[type=number],input[type=text]{width:100%;padding:10px 11px;border:1px solid var(--brd);border-radius:9px;font-size:14px;color:var(--txt);background:var(--bg);appearance:none;-webkit-appearance:none;margin-bottom:11px;outline:none;transition:border .15s}
+select:focus,input:focus{border-color:var(--g4)}
+
+.toggle2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px}
+.t2btn{padding:10px;border:1.5px solid var(--brd);border-radius:9px;background:var(--bg);color:var(--mut);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center}
+.t2btn.active{border-color:var(--g4);background:var(--g0);color:var(--g6)}
+
+.prev-box{background:var(--g0);border-radius:9px;padding:9px 11px;border:1px solid var(--g1);margin-bottom:11px;display:none}
+.prev-precio{font-size:17px;font-weight:700;color:var(--g5)}
+.prev-gan{font-size:11px;color:var(--mut);margin-top:2px}
+
+.items{display:flex;flex-direction:column;gap:6px;margin-bottom:11px}
+.item-row{background:var(--g0);border-radius:9px;padding:8px 11px;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--g1)}
+.iname{font-size:12px;font-weight:600}.idet{font-size:10px;color:var(--mut);margin-top:2px}
+.idel{background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:2px 7px;line-height:1}
+
+.btn{width:100%;padding:13px;border-radius:11px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--g6);color:#fff}.btn-primary:active{background:var(--g7)}
+.btn-sec{background:var(--brd);color:var(--txt);margin-bottom:7px}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-drive{background:var(--blue);color:#fff}
+.btn-dl{background:var(--g7);color:#fff}
+.btn+.btn{margin-top:7px}
+
+.vrow{padding:9px 0;border-bottom:1px solid var(--brd);display:flex;align-items:flex-start;justify-content:space-between}
+.vrow:last-child{border-bottom:none}
+.vname{font-size:12px;font-weight:600}.vmeta{font-size:10px;color:var(--mut);margin-top:2px}
+.vamt{text-align:right}.ving{font-size:13px;font-weight:700;color:var(--g5)}
+.vgan{font-size:10px;color:var(--mut);margin-top:1px}
+
+.badge{display:inline-block;padding:1px 6px;border-radius:5px;font-size:9px;font-weight:700}
+.bm{background:var(--g1);color:var(--g6)}.bme{background:var(--gold-bg);color:var(--gold)}
+
+.barrow{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.barlabel{font-size:10px;color:var(--mut);width:28px;text-align:right;flex-shrink:0}
+.bartrack{flex:1;background:var(--g1);border-radius:3px;height:14px;overflow:hidden}
+.barfill{height:100%;border-radius:3px;background:var(--g4);transition:width .5s}
+.barval{font-size:10px;font-weight:600;color:var(--txt);width:68px;text-align:right;flex-shrink:0}
+
+.cierre-card{background:var(--g8);border-radius:var(--r);padding:14px 13px;margin-bottom:11px;color:var(--g1)}
+.ci-label{font-size:10px;color:var(--g3);margin-bottom:2px}
+.ci-val{font-size:19px;font-weight:700;color:#fff}.ci-gold{color:var(--gold-l)}
+
+.hrow{padding:10px 0;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center}
+.hrow:last-child{border-bottom:none}
+.hmes{font-size:13px;font-weight:600}.hcant{font-size:10px;color:var(--mut)}
+.hgan{font-size:14px;font-weight:700;color:var(--g5)}
+
+.monnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.monnav-btn{background:var(--card);border:1px solid var(--brd);border-radius:7px;padding:6px 13px;font-size:16px;cursor:pointer;color:var(--txt)}
+.montit{font-size:14px;font-weight:700}
+
+/* Costos */
+.prod-card{background:var(--card);border:1px solid var(--brd);border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:var(--sh)}
+.prod-header{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;cursor:pointer}
+.prod-name{font-size:13px;font-weight:700}.prod-summary{font-size:10px;color:var(--mut);margin-top:2px}
+.prod-chevron{font-size:16px;color:var(--mut);transition:transform .2s;flex-shrink:0}
+.prod-body{display:none;padding:0 13px 13px;border-top:1px solid var(--brd)}
+.prod-body.open{display:block}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.field-row label{font-size:10px}.field-row input{font-size:13px;padding:8px 10px;margin-bottom:8px}
+.costo-total-row{background:var(--g0);border-radius:8px;padding:8px 10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.costo-total-label{font-size:11px;color:var(--mut)}.costo-total-val{font-size:15px;font-weight:700;color:var(--g5)}
+.ganancia-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.gan-box{background:var(--gold-bg);border-radius:8px;padding:7px 9px}
+.gan-label{font-size:9px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.gan-val{font-size:14px;font-weight:700;color:var(--gold)}
+
+/* Drive / Sync */
+.drive-banner{background:var(--blue);border-radius:11px;padding:12px 14px;margin-bottom:11px;display:flex;align-items:center;gap:10px}
+.drive-banner.connected{background:var(--g6)}
+.drive-banner-txt{flex:1}
+.drive-banner-title{font-size:13px;font-weight:700;color:#fff}
+.drive-banner-sub{font-size:10px;color:rgba(255,255,255,.75);margin-top:2px}
+.drive-banner-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 12px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+.queue-card{background:var(--gold-bg);border:1px solid #e8d08a;border-radius:11px;padding:11px 13px;margin-bottom:11px;display:none}
+.queue-card.visible{display:block}
+.queue-title{font-size:12px;font-weight:700;color:var(--gold);margin-bottom:3px}
+.queue-sub{font-size:10px;color:#8a6820}
+
+.sync-log{display:flex;flex-direction:column;gap:6px}
+.log-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)}
+.log-row:last-child{border-bottom:none}
+.log-file{font-size:12px;font-weight:600}.log-time{font-size:10px;color:var(--mut)}
+.log-status{font-size:10px;font-weight:600}
+.log-status.ok{color:var(--g5)}.log-status.fail{color:var(--red)}.log-status.queued{color:var(--gold)}
+
+.dl-card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:13px;box-shadow:var(--sh);margin-bottom:10px}
+.dl-title{font-size:13px;font-weight:700;margin-bottom:3px}
+.dl-desc{font-size:11px;color:var(--mut);margin-bottom:11px;line-height:1.5}
+.dl-btns{display:flex;flex-direction:column;gap:7px}
+
+.empty{text-align:center;color:var(--mut);font-size:12px;padding:22px 0}
+
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--card);border-radius:18px;padding:22px 18px;width:100%;max-width:380px}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:7px}
+.modal p{font-size:12px;color:var(--mut);margin-bottom:18px;line-height:1.5}
+.modal-btns{display:flex;flex-direction:column;gap:7px}
+
+.toast{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(60px);opacity:0;background:var(--g8);color:#fff;padding:10px 18px;border-radius:18px;font-size:12px;font-weight:600;transition:all .3s;z-index:999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.22);pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:var(--red)}.toast.info{background:var(--blue)}
+
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .65s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Botones borrar */
+.idel-btn{background:var(--red-bg);border:1px solid #f5c6c2;border-radius:8px;padding:7px 9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.idel-btn:active{background:#fad4d0}
+.vdel-btn{background:var(--red-bg);border:1px solid #f5c6c2;border-radius:8px;padding:7px 9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.vdel-btn:active{background:#fad4d0}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">🫒 <span>Olea</span></div>
+  <div class="sync-status" onclick="goTab('dl')" id="sync-status" title="Ver estado de sincronización">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-label">Drive</span>
+  </div>
+</div>
+
+<!-- ══ CARGAR ══ -->
+<div id="pg-cargar" class="page active">
+  <div class="card">
+    <div class="clabel">Fecha</div>
+    <input type="date" id="f-fecha">
+    <div class="clabel">Producto</div>
+    <select id="f-prod"><option value="">— elegí un producto —</option></select>
+    <div class="clabel">Tipo de precio</div>
+    <div class="toggle2">
+      <button class="t2btn active" id="t-mayor" onclick="setTipo('mayor')">Por mayor</button>
+      <button class="t2btn" id="t-menor" onclick="setTipo('menor')">Por menor</button>
+    </div>
+    <div class="prev-box" id="prev-box">
+      <div class="prev-precio" id="prev-precio"></div>
+      <div class="prev-gan" id="prev-gan"></div>
+    </div>
+    <div class="clabel">Cantidad</div>
+    <input type="number" id="f-cant" min="1" value="1">
+    <button class="btn btn-sec" onclick="agregarItem()">+ Agregar al pedido</button>
+  </div>
+  <div id="carrito-wrap" style="display:none">
+    <div class="sectit">Pedido del día</div>
+    <div class="items" id="item-list"></div>
+    <div class="card" style="padding:9px 13px;margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--mut)">Total ingreso</span>
+        <span id="tot-ing" style="font-size:16px;font-weight:700;color:var(--g5)"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span style="font-size:11px;color:var(--mut)">Ganancia estimada</span>
+        <span id="tot-gan" style="font-size:14px;font-weight:700;color:var(--gold)"></span>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="guardarVentas()"><span id="btn-grd">Guardar y sincronizar</span></button>
+  </div>
+</div>
+
+<!-- ══ HOY ══ -->
+<div id="pg-hoy" class="page">
+  <div id="hoy-content"><div class="empty">Cargando…</div></div>
+</div>
+
+<!-- ══ MES ══ -->
+<div id="pg-mes" class="page">
+  <div class="monnav">
+    <button class="monnav-btn" onclick="cambiarMes(-1)">‹</button>
+    <div class="montit" id="mon-tit"></div>
+    <button class="monnav-btn" onclick="cambiarMes(1)">›</button>
+  </div>
+  <div id="mes-content"><div class="empty">Cargando…</div></div>
+</div>
+
+<!-- ══ COSTOS ══ -->
+<div id="pg-costos" class="page">
+  <div class="card" style="padding:11px 13px;margin-bottom:11px">
+    <div style="font-size:12px;color:var(--mut);line-height:1.5">Editá costos y precios. Se guardan automáticamente y se sincronizan con Drive.</div>
+  </div>
+  <div id="prod-list"></div>
+  <button class="btn btn-sec" onclick="resetearPrecios()" style="margin-top:4px">Restaurar valores originales del Excel</button>
+</div>
+
+<!-- ══ EXPORTAR / DRIVE ══ -->
+<div id="pg-dl" class="page">
+
+  <!-- Banner conexión Drive -->
+  <div class="drive-banner" id="drive-banner">
+    <svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:none;stroke:#fff;stroke-width:1.8;flex-shrink:0"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    <div class="drive-banner-txt">
+      <div class="drive-banner-title" id="banner-title">Conectar Google Drive</div>
+      <div class="drive-banner-sub" id="banner-sub">Para activar el auto-guardado automático</div>
+    </div>
+    <button class="drive-banner-btn" id="banner-btn" onclick="conectarDrive()">Conectar</button>
+  </div>
+
+  <!-- Cola pendiente -->
+  <div class="queue-card" id="queue-card">
+    <div class="queue-title">⏳ Subidas pendientes</div>
+    <div class="queue-sub" id="queue-sub"></div>
+    <button class="btn btn-drive" onclick="procesarCola()" style="margin-top:9px;padding:9px"><span id="btn-cola">Subir ahora</span></button>
+  </div>
+
+  <!-- Log de sincronizaciones -->
+  <div class="card">
+    <div class="clabel">Último sync a Drive</div>
+    <div id="sync-log"><div class="empty">Sin sincronizaciones aún</div></div>
+  </div>
+
+  <!-- Descargas manuales -->
+  <div class="sectit">Descargar localmente</div>
+
+  <div class="dl-card">
+    <div class="dl-title">Día de hoy</div>
+    <div class="dl-desc">Excel con el detalle completo de las ventas de hoy: productos, cantidades, ingresos, costos y ganancia.</div>
+    <div class="dl-btns">
+      <button class="btn btn-dl" onclick="dlDiaHoy()">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Descargar Excel de hoy
+      </button>
+    </div>
+  </div>
+
+  <div class="dl-card">
+    <div class="dl-title">Mes actual</div>
+    <div class="dl-desc">Excel con resumen, detalle y ranking del mes en curso.</div>
+    <div class="dl-btns">
+      <button class="btn btn-dl" onclick="dlMesActual()">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Descargar Excel del mes actual
+      </button>
+    </div>
+  </div>
+
+  <div class="dl-card">
+    <div class="dl-title">Historial completo</div>
+    <div class="dl-desc">Todos los meses cerrados + detalle de cada venta.</div>
+    <div class="dl-btns">
+      <button class="btn btn-dl" onclick="dlHistorial()">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Descargar historial completo
+      </button>
+    </div>
+  </div>
+
+  <div class="dl-card">
+    <div class="dl-title">Tabla de costos</div>
+    <div class="dl-desc">Precios actuales de todos los productos.</div>
+    <div class="dl-btns">
+      <button class="btn btn-dl" onclick="dlCostos()">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;flex-shrink:0"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Descargar tabla de costos
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ Tab bar ══ -->
+<nav class="tabbar">
+  <button class="tabbtn active" id="tab-cargar" onclick="goTab('cargar')">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Cargar
+  </button>
+  <button class="tabbtn" id="tab-hoy" onclick="goTab('hoy')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Hoy
+  </button>
+  <button class="tabbtn" id="tab-mes" onclick="goTab('mes')">
+    <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Mes
+  </button>
+  <button class="tabbtn" id="tab-costos" onclick="goTab('costos')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9h.01M15 9h.01M9 12h6M9 15h6"/></svg>Costos
+  </button>
+  <button class="tabbtn" id="tab-dl" onclick="goTab('dl')">
+    <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Drive
+  </button>
+</nav>
+
+<!-- ══ Modal ══ -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modal-title"></h2>
+    <p id="modal-desc"></p>
+    <div class="modal-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DATOS BASE (del Excel original)
+// ════════════════════════════════════════════════════════════
+const DEFAULTS=[
+  {id:1,nombre:'Botella PET 1/2 Lt',    cAceite:3500,cEnvase:670, cEtiqueta:200,pm:7500, pme:10000},
+  {id:2,nombre:'Botella PET 1 Lt',       cAceite:7000,cEnvase:650, cEtiqueta:200,pm:14000,pme:18000},
+  {id:3,nombre:'Botella Vidrio 1/2 Lt',  cAceite:3500,cEnvase:2105,cEtiqueta:200,pm:9800, pme:15000},
+  {id:4,nombre:'Vasija Vidrio 1/2 Lt',   cAceite:3500,cEnvase:2560,cEtiqueta:500,pm:11500,pme:18000},
+  {id:5,nombre:'Bidón 5 Litros',         cAceite:35000,cEnvase:1250,cEtiqueta:200,pm:70000,pme:75000},
+  {id:6,nombre:'Frasco Aceituna 1/2 Lt', cAceite:3000,cEnvase:700, cEtiqueta:200,pm:6000, pme:8000},
+  {id:7,nombre:'Frasco Aceituna 1 Lt',   cAceite:6000,cEnvase:1400,cEtiqueta:200,pm:11000,pme:14000},
+];
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ════════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ════════════════════════════════════════════════════════════
+let db, productos=[], carrito=[], tipoSel='mayor', mesActual=new Date();
+let driveToken=null, driveTokenExpiry=0;
+let syncQueue=[];   // [{tipo, ts, fname}]
+let syncLog=[];     // últimas 10 sync
+let lastDailySync=''; // fecha YYYY-MM-DD del último sync diario
+let isSyncing=false;
+
+const DRIVE_CLIENT_ID='TU_CLIENT_ID_AQUI.apps.googleusercontent.com';
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+
+// ════════════════════════════════════════════════════════════
+// INDEXEDDB
+// ════════════════════════════════════════════════════════════
+function initDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open('olea',4);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('ventas'))
+        d.createObjectStore('ventas',{keyPath:'id',autoIncrement:true}).createIndex('fecha','fecha');
+      if(!d.objectStoreNames.contains('cierres'))
+        d.createObjectStore('cierres',{keyPath:'key'});
+      if(!d.objectStoreNames.contains('productos'))
+        d.createObjectStore('productos',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('meta'))
+        d.createObjectStore('meta',{keyPath:'k'});
+    };
+    req.onsuccess=e=>{db=e.target.result;res()};
+    req.onerror=()=>rej(req.error);
+  });
+}
+const tx=(store,mode='readonly')=>db.transaction(store,mode).objectStore(store);
+const dbGetAll=store=>new Promise(r=>{const q=tx(store).getAll();q.onsuccess=()=>r(q.result)});
+const dbPut=(store,val)=>new Promise(r=>{const q=tx(store,'readwrite').put(val);q.onsuccess=()=>r(q.result)});
+const dbGet=(store,key)=>new Promise(r=>{const q=tx(store).get(key);q.onsuccess=()=>r(q.result)});
+const dbGetByIdx=(store,idx,val)=>new Promise(r=>{const q=tx(store).index(idx).getAll(val);q.onsuccess=()=>r(q.result)});
+
+async function metaGet(k){const r=await dbGet('meta',k);return r?.v}
+async function metaSet(k,v){await dbPut('meta',{k,v})}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+async function init(){
+  await initDB();
+  await cargarProductos();
+
+  document.getElementById('f-fecha').value=fmtDate(new Date());
+
+  // Restaurar estado Drive/cola desde meta
+  driveToken=await metaGet('driveToken')||null;
+  driveTokenExpiry=await metaGet('driveTokenExpiry')||0;
+  syncQueue=await metaGet('syncQueue')||[];
+  syncLog=await metaGet('syncLog')||[];
+  lastDailySync=await metaGet('lastDailySync')||'';
+
+  if(driveToken&&Date.now()<driveTokenExpiry) {
+    setDriveConnected(true);
+  }
+
+  poblarSelect();
+  renderProdList();
+  updSyncUI();
+
+  // Escuchar cuando vuelve internet
+  window.addEventListener('online', onConexionRestaurada);
+
+  // Sync diario al abrir la app
+  await triggerDailySync();
+}
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmtHuman(d){return d.getDate()+' '+MESES[d.getMonth()]+' '+d.getFullYear()}
+function $m(n){return '$'+Math.round(n).toLocaleString('es-AR')}
+function costoTotal(p){return p.cAceite+p.cEnvase+p.cEtiqueta}
+function ganMayor(p){return p.pm-costoTotal(p)}
+function ganMenor(p){return p.pme-costoTotal(p)}
+
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',3000);
+}
+
+// ════════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════════
+const TABS=['cargar','hoy','mes','costos','dl'];
+function goTab(tab){
+  TABS.forEach(t=>{
+    document.getElementById('pg-'+t).classList.remove('active');
+    document.getElementById('tab-'+t).classList.remove('active');
+  });
+  document.getElementById('pg-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='hoy') cargarHoy();
+  if(tab==='mes'){updMonTit();cargarMes();}
+  if(tab==='dl') renderSyncLog();
+}
+
+// ════════════════════════════════════════════════════════════
+// TAB CARGAR
+// ════════════════════════════════════════════════════════════
+async function cargarProductos(){
+  const saved=await dbGetAll('productos');
+  productos=saved.length===7?saved:DEFAULTS.map(p=>({...p}));
+  if(saved.length!==7) for(const p of productos) await dbPut('productos',p);
+}
+function poblarSelect(){
+  const sel=document.getElementById('f-prod');
+  sel.innerHTML='<option value="">— elegí un producto —</option>';
+  productos.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.nombre;sel.appendChild(o);});
+  sel.onchange=updPrev;
+  document.getElementById('f-cant').oninput=updPrev;
+}
+function setTipo(t){
+  tipoSel=t;
+  document.getElementById('t-mayor').classList.toggle('active',t==='mayor');
+  document.getElementById('t-menor').classList.toggle('active',t==='menor');
+  updPrev();
+}
+function updPrev(){
+  const pid=document.getElementById('f-prod').value;
+  const cant=parseInt(document.getElementById('f-cant').value)||1;
+  const box=document.getElementById('prev-box');
+  if(!pid){box.style.display='none';return;}
+  const p=productos.find(x=>x.id==pid);
+  const precio=tipoSel==='mayor'?p.pm:p.pme;
+  const ganU=tipoSel==='mayor'?ganMayor(p):ganMenor(p);
+  box.style.display='block';
+  document.getElementById('prev-precio').textContent=$m(precio)+' c/u → Total: '+$m(precio*cant);
+  document.getElementById('prev-gan').textContent='Ganancia: '+$m(ganU*cant)+'  ·  Costo unitario: '+$m(costoTotal(p));
+}
+function agregarItem(){
+  const pid=document.getElementById('f-prod').value;
+  const cant=parseInt(document.getElementById('f-cant').value)||1;
+  if(!pid){toast('Elegí un producto','err');return;}
+  const p=productos.find(x=>x.id==pid);
+  const precio=tipoSel==='mayor'?p.pm:p.pme;
+  const ganU=tipoSel==='mayor'?ganMayor(p):ganMenor(p);
+  carrito.push({pid:p.id,nombre:p.nombre,cant,tipo:tipoSel,precio,costo:costoTotal(p),ganU});
+  document.getElementById('f-prod').value='';
+  document.getElementById('f-cant').value=1;
+  document.getElementById('prev-box').style.display='none';
+  renderCarrito();
+}
+function quitarItem(i){
+  const it=carrito[i];
+  if(!confirm(`¿Quitar "${it.nombre}" (${it.cant} u) del pedido?`))return;
+  carrito.splice(i,1);renderCarrito();
+}
+function renderCarrito(){
+  const list=document.getElementById('item-list');
+  const wrap=document.getElementById('carrito-wrap');
+  list.innerHTML='';
+  if(!carrito.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  let totI=0,totG=0;
+  carrito.forEach((it,i)=>{
+    const ing=it.precio*it.cant,gan=it.ganU*it.cant;
+    totI+=ing;totG+=gan;
+    const d=document.createElement('div');d.className='item-row';
+    d.innerHTML=`
+      <div style="flex:1">
+        <div class="iname">${it.nombre}</div>
+        <div class="idet">${it.cant} × ${$m(it.precio)} <span class="badge b${it.tipo==='mayor'?'m':'me'}">${it.tipo}</span> = ${$m(ing)}</div>
+      </div>
+      <button class="idel-btn" onclick="quitarItem(${i})" title="Quitar del pedido">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--red);fill:none;stroke-width:2;stroke-linecap:round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      </button>`;
+    list.appendChild(d);
+  });
+  document.getElementById('tot-ing').textContent=$m(totI);
+  document.getElementById('tot-gan').textContent=$m(totG);
+}
+async function guardarVentas(){
+  if(!carrito.length)return;
+  const fecha=document.getElementById('f-fecha').value;
+  const btn=document.getElementById('btn-grd');
+  btn.innerHTML='<span class="spin"></span>';
+  for(const it of carrito){
+    await dbPut('ventas',{
+      fecha,pid:it.pid,nombre:it.nombre,cant:it.cant,tipo:it.tipo,
+      precio:it.precio,costo:it.costo,
+      ingreso:it.precio*it.cant,costoT:it.costo*it.cant,
+      ganancia:it.ganU*it.cant,ts:Date.now()
+    });
+  }
+  carrito=[];renderCarrito();
+  btn.textContent='Guardar y sincronizar';
+  toast('¡Ventas guardadas!');
+
+  // ── AUTO-SYNC después de guardar ──
+  await encolarSync('mes_actual');
+  await encolarSync('historial');
+  await procesarCola();
+}
+
+// ════════════════════════════════════════════════════════════
+// TAB HOY
+// ════════════════════════════════════════════════════════════
+async function borrarVenta(id,nombre){
+  if(!confirm(`¿Borrar la venta de "${nombre}"?\nEsta acción no se puede deshacer.`))return;
+  await new Promise(r=>{const q=tx('ventas','readwrite').delete(id);q.onsuccess=r});
+  toast('Venta eliminada');
+  await encolarSync('mes_actual');
+  await encolarSync('historial');
+  await procesarCola();
+  cargarHoy();
+}
+async function cargarHoy(){
+  const fecha=fmtDate(new Date());
+  const ventas=(await dbGetByIdx('ventas','fecha',fecha)).sort((a,b)=>b.ts-a.ts);
+  const totI=ventas.reduce((s,v)=>s+v.ingreso,0),totC=ventas.reduce((s,v)=>s+v.costoT,0);
+  const totG=ventas.reduce((s,v)=>s+v.ganancia,0),totV=ventas.reduce((s,v)=>s+v.cant,0);
+  // Verificar si el mes está cerrado (en ese caso no se puede borrar)
+  const mesKey=fecha.slice(0,7);
+  const cierres=await dbGetAll('cierres');
+  const mesCerrado=cierres.some(c=>c.key===mesKey);
+  const rows=ventas.map(v=>`<div class="vrow">
+    <div style="flex:1">
+      <div class="vname">${v.nombre}</div>
+      <div class="vmeta">${v.cant} u · <span class="badge b${v.tipo==='mayor'?'m':'me'}">${v.tipo}</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="vamt">
+        <div class="ving">${$m(v.ingreso)}</div>
+        <div class="vgan">gan. ${$m(v.ganancia)}</div>
+      </div>
+      ${!mesCerrado?`<button class="vdel-btn" onclick="borrarVenta(${v.id},'${v.nombre.replace(/'/g,"\\'")}')">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--red);fill:none;stroke-width:2;stroke-linecap:round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+      </button>`:''}
+    </div>
+  </div>`).join('');
+  document.getElementById('hoy-content').innerHTML=`
+    <div class="metrics">
+      <div class="metric"><div class="mlabel">Ventas hoy</div><div class="mval">${totV}</div><div class="msub">unidades</div></div>
+      <div class="metric"><div class="mlabel">Ingresos</div><div class="mval green">${$m(totI)}</div></div>
+      <div class="metric"><div class="mlabel">Costos</div><div class="mval red">${$m(totC)}</div></div>
+      <div class="metric"><div class="mlabel">Ganancia</div><div class="mval gold">${$m(totG)}</div></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="clabel" style="margin-bottom:0">Detalle — ${fmtHuman(new Date())}</div>
+        ${mesCerrado
+          ?'<span style="font-size:9px;color:var(--mut);background:var(--brd);padding:2px 7px;border-radius:10px">mes cerrado</span>'
+          :'<span style="font-size:9px;color:var(--mut)">tocá 🗑 para borrar</span>'}
+      </div>
+      ${ventas.length?rows:'<div class="empty">Sin ventas hoy</div>'}
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// TAB MES
+// ════════════════════════════════════════════════════════════
+function updMonTit(){document.getElementById('mon-tit').textContent=MESES[mesActual.getMonth()]+' '+mesActual.getFullYear()}
+function cambiarMes(d){mesActual=new Date(mesActual.getFullYear(),mesActual.getMonth()+d,1);updMonTit();cargarMes();}
+async function cargarMes(){
+  const anio=mesActual.getFullYear(),mes=mesActual.getMonth()+1;
+  const key=`${anio}-${String(mes).padStart(2,'0')}`;
+  const cierres=await dbGetAll('cierres');
+  const cierre=cierres.find(c=>c.key===key);
+  const el=document.getElementById('mes-content');
+  if(cierre){
+    el.innerHTML=`<div class="cierre-card">
+      <div style="font-size:10px;color:var(--g3);margin-bottom:11px">✓ Mes cerrado</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div><div class="ci-label">Ventas</div><div class="ci-val">${cierre.cant}</div></div>
+        <div><div class="ci-label">Ingresos</div><div class="ci-val">${$m(cierre.ingresos)}</div></div>
+        <div><div class="ci-label">Costos</div><div class="ci-val">${$m(cierre.costos)}</div></div>
+        <div><div class="ci-label">Ganancia</div><div class="ci-val ci-gold">${$m(cierre.ganancia)}</div></div>
+      </div></div>`;
+    return;
+  }
+  const todas=await dbGetAll('ventas');
+  const ventas=todas.filter(v=>v.fecha.startsWith(key));
+  const totI=ventas.reduce((s,v)=>s+v.ingreso,0),totC=ventas.reduce((s,v)=>s+v.costoT,0);
+  const totG=ventas.reduce((s,v)=>s+v.ganancia,0),totV=ventas.reduce((s,v)=>s+v.cant,0);
+  const dias={};
+  ventas.forEach(v=>{dias[v.fecha]=dias[v.fecha]||{ing:0,gan:0};dias[v.fecha].ing+=v.ingreso;dias[v.fecha].gan+=v.ganancia});
+  const diasArr=Object.entries(dias).sort(),maxI=Math.max(...diasArr.map(([,d])=>d.ing),1);
+  const barras=diasArr.map(([f,d])=>`<div class="barrow">
+    <span class="barlabel">${f.slice(8)}</span>
+    <div class="bartrack"><div class="barfill" style="width:${Math.round(d.ing/maxI*100)}%"></div></div>
+    <span class="barval">${$m(d.ing)}</span></div>`).join('');
+  const prods={};
+  ventas.forEach(v=>{prods[v.nombre]=prods[v.nombre]||{cant:0,gan:0};prods[v.nombre].cant+=v.cant;prods[v.nombre].gan+=v.ganancia});
+  const prodsArr=Object.entries(prods).sort((a,b)=>b[1].gan-a[1].gan);
+  const prodRows=prodsArr.map(([n,d])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)">
+    <div><div style="font-size:12px;font-weight:600">${n}</div><div style="font-size:10px;color:var(--mut)">${d.cant} u</div></div>
+    <div style="text-align:right"><div style="font-size:12px;font-weight:700;color:var(--g5)">${$m(d.gan)}</div></div>
+  </div>`).join('');
+  const ahora=new Date();
+  const esPasado=(anio<ahora.getFullYear())||(anio===ahora.getFullYear()&&mes<ahora.getMonth()+1);
+  el.innerHTML=`
+    <div class="metrics">
+      <div class="metric"><div class="mlabel">Ventas</div><div class="mval">${totV}</div><div class="msub">unidades</div></div>
+      <div class="metric"><div class="mlabel">Ingresos</div><div class="mval green">${$m(totI)}</div></div>
+      <div class="metric"><div class="mlabel">Costos</div><div class="mval red">${$m(totC)}</div></div>
+      <div class="metric"><div class="mlabel">Ganancia</div><div class="mval gold">${$m(totG)}</div></div>
+    </div>
+    ${diasArr.length?`<div class="card"><div class="clabel">Ingresos por día</div>${barras}</div>`:''}
+    ${prodsArr.length?`<div class="card"><div class="clabel">Por producto</div>${prodRows}</div>`:''}
+    ${esPasado?`<button class="btn btn-gold" onclick="cerrarMes(${anio},${mes})" style="margin-top:4px">Cerrar mes ${MESES[mes-1]} →</button>`:''}`;
+}
+async function cerrarMes(anio,mes){
+  if(!confirm(`¿Cerrar ${MESES[mes-1]} ${anio}?`))return;
+  const key=`${anio}-${String(mes).padStart(2,'0')}`;
+  const todas=await dbGetAll('ventas');
+  const ventas=todas.filter(v=>v.fecha.startsWith(key));
+  await dbPut('cierres',{
+    key,anio,mes,
+    cant:ventas.reduce((s,v)=>s+v.cant,0),
+    ingresos:ventas.reduce((s,v)=>s+v.ingreso,0),
+    costos:ventas.reduce((s,v)=>s+v.costoT,0),
+    ganancia:ventas.reduce((s,v)=>s+v.ganancia,0),
+    cerradoEn:new Date().toISOString()
+  });
+  toast('Mes cerrado');
+  await encolarSync('historial');
+  await procesarCola();
+  cargarMes();
+}
+
+// ════════════════════════════════════════════════════════════
+// TAB COSTOS
+// ════════════════════════════════════════════════════════════
+function renderProdList(){
+  const el=document.getElementById('prod-list');el.innerHTML='';
+  productos.forEach(p=>{
+    const ct=costoTotal(p),gm=ganMayor(p),gme=ganMenor(p);
+    const div=document.createElement('div');div.className='prod-card';
+    div.innerHTML=`
+      <div class="prod-header" onclick="toggleProd(${p.id})">
+        <div>
+          <div class="prod-name">${p.nombre}</div>
+          <div class="prod-summary">Costo: ${$m(ct)} · Mayor: ${$m(p.pm)} · Menor: ${$m(p.pme)}</div>
+        </div>
+        <span class="prod-chevron" id="chev-${p.id}">›</span>
+      </div>
+      <div class="prod-body" id="body-${p.id}">
+        <div style="margin-top:11px">
+          <div class="costo-total-row">
+            <span class="costo-total-label">Costo total calculado</span>
+            <span class="costo-total-val" id="ct-${p.id}">${$m(ct)}</span>
+          </div>
+          <div class="field-row">
+            <div><label>Costo aceite/aceituna</label><input type="number" id="cAceite-${p.id}" value="${p.cAceite}" oninput="recalc(${p.id})"></div>
+            <div><label>Costo envase</label><input type="number" id="cEnvase-${p.id}" value="${p.cEnvase}" oninput="recalc(${p.id})"></div>
+          </div>
+          <div class="field-row">
+            <div><label>Costo etiqueta</label><input type="number" id="cEtiqueta-${p.id}" value="${p.cEtiqueta}" oninput="recalc(${p.id})"></div>
+          </div>
+          <div class="field-row">
+            <div><label>Precio mayor</label><input type="number" id="pm-${p.id}" value="${p.pm}" oninput="recalc(${p.id})"></div>
+            <div><label>Precio menor</label><input type="number" id="pme-${p.id}" value="${p.pme}" oninput="recalc(${p.id})"></div>
+          </div>
+          <div class="ganancia-row">
+            <div class="gan-box"><div class="gan-label">Ganancia mayor</div><div class="gan-val" id="gm-${p.id}">${$m(gm)}</div></div>
+            <div class="gan-box"><div class="gan-label">Ganancia menor</div><div class="gan-val" id="gme-${p.id}">${$m(gme)}</div></div>
+          </div>
+          <button class="btn btn-primary" onclick="guardarProducto(${p.id})">Guardar cambios</button>
+        </div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+function toggleProd(id){
+  const b=document.getElementById('body-'+id),c=document.getElementById('chev-'+id);
+  c.style.transform=b.classList.toggle('open')?'rotate(90deg)':'';
+}
+function getForm(id){
+  return{id,
+    cAceite:parseFloat(document.getElementById('cAceite-'+id).value)||0,
+    cEnvase:parseFloat(document.getElementById('cEnvase-'+id).value)||0,
+    cEtiqueta:parseFloat(document.getElementById('cEtiqueta-'+id).value)||0,
+    pm:parseFloat(document.getElementById('pm-'+id).value)||0,
+    pme:parseFloat(document.getElementById('pme-'+id).value)||0,
+  };
+}
+function recalc(id){
+  const p=getForm(id),ct=costoTotal(p);
+  document.getElementById('ct-'+id).textContent=$m(ct);
+  document.getElementById('gm-'+id).textContent=$m(ganMayor(p));
+  document.getElementById('gme-'+id).textContent=$m(ganMenor(p));
+}
+async function guardarProducto(id){
+  const nuevo=getForm(id);
+  const idx=productos.findIndex(p=>p.id===id);
+  productos[idx]={...productos[idx],...nuevo};
+  await dbPut('productos',productos[idx]);
+  const ct=costoTotal(productos[idx]);
+  document.querySelector(`#body-${id}`).closest('.prod-card').querySelector('.prod-summary').textContent=
+    `Costo: ${$m(ct)} · Mayor: ${$m(productos[idx].pm)} · Menor: ${$m(productos[idx].pme)}`;
+  poblarSelect();
+  toast('Precios actualizados ✓');
+  await encolarSync('costos');
+  await procesarCola();
+}
+async function resetearPrecios(){
+  if(!confirm('¿Restaurar todos los precios originales del Excel?'))return;
+  productos=DEFAULTS.map(p=>({...p}));
+  for(const p of productos) await dbPut('productos',p);
+  renderProdList();poblarSelect();
+  toast('Precios restaurados');
+  await encolarSync('costos');
+  await procesarCola();
+}
+
+// ════════════════════════════════════════════════════════════
+// GOOGLE DRIVE — TOKEN
+// ════════════════════════════════════════════════════════════
+function driveConectado(){
+  return driveToken && Date.now() < driveTokenExpiry;
+}
+function setDriveConnected(ok){
+  const banner=document.getElementById('drive-banner');
+  const title=document.getElementById('banner-title');
+  const sub=document.getElementById('banner-sub');
+  const btn=document.getElementById('banner-btn');
+  if(ok){
+    banner.classList.add('connected');
+    title.textContent='Drive conectado ✓';
+    sub.textContent='Auto-guardado activado';
+    btn.textContent='Reconectar';
+  } else {
+    banner.classList.remove('connected');
+    title.textContent='Conectar Google Drive';
+    sub.textContent='Para activar el auto-guardado automático';
+    btn.textContent='Conectar';
+  }
+}
+async function conectarDrive(){
+  try {
+    const token=await pedirToken();
+    driveToken=token;
+    driveTokenExpiry=Date.now()+55*60*1000; // 55 min
+    await metaSet('driveToken',driveToken);
+    await metaSet('driveTokenExpiry',driveTokenExpiry);
+    setDriveConnected(true);
+    toast('Drive conectado ✓');
+    // subir todo de inmediato
+    await encolarSync('mes_actual');
+    await encolarSync('historial');
+    await encolarSync('costos');
+    await procesarCola();
+  } catch(e){
+    toast(e.message||'Error conectando Drive','err');
+  }
+}
+function pedirToken(){
+  return new Promise((res,rej)=>{
+    const cargar=()=>{
+      google.accounts.oauth2.initTokenClient({
+        client_id:DRIVE_CLIENT_ID,scope:DRIVE_SCOPE,
+        callback:r=>r.error?rej(new Error(r.error)):res(r.access_token)
+      }).requestAccessToken({prompt:''});
+    };
+    if(!window.google?.accounts?.oauth2){
+      const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';
+      s.onload=cargar;s.onerror=()=>rej(new Error('No se pudo cargar Google Sign-In'));
+      document.head.appendChild(s);
+    } else cargar();
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// COLA DE SINCRONIZACIÓN
+// ════════════════════════════════════════════════════════════
+async function encolarSync(tipo){
+  // Evitar duplicados del mismo tipo en cola
+  syncQueue=syncQueue.filter(i=>i.tipo!==tipo);
+  syncQueue.push({tipo,ts:Date.now()});
+  await metaSet('syncQueue',syncQueue);
+  updSyncUI();
+}
+
+async function procesarCola(){
+  if(isSyncing||!syncQueue.length)return;
+  if(!navigator.onLine){
+    setSyncDot('offline','Sin internet · en cola');
+    updQueueCard();
+    return;
+  }
+  if(!driveConectado()){
+    // Si hay token guardado pero expiró, intentar renovar silenciosamente
+    if(driveToken){
+      try{ const t=await pedirToken();driveToken=t;driveTokenExpiry=Date.now()+55*60*1000;
+        await metaSet('driveToken',driveToken);await metaSet('driveTokenExpiry',driveTokenExpiry);
+      } catch(e){ updQueueCard();return; }
+    } else { updQueueCard();return; }
+  }
+
+  isSyncing=true;
+  setSyncDot('syncing','Sincronizando…');
+
+  const cola=[...syncQueue];
+  const fallidos=[];
+
+  for(const item of cola){
+    try{
+      await subirArchivo(item.tipo);
+      addLogEntry(item.tipo,'ok');
+    } catch(e){
+      console.warn('sync error',item.tipo,e);
+      addLogEntry(item.tipo,'fail');
+      fallidos.push(item);
+    }
+  }
+
+  syncQueue=fallidos;
+  await metaSet('syncQueue',syncQueue);
+  await metaSet('syncLog',syncLog);
+  isSyncing=false;
+
+  if(fallidos.length){
+    setSyncDot('error',`${fallidos.length} pendiente(s)`);
+  } else {
+    setSyncDot('ok','Sincronizado ✓');
+    setTimeout(()=>setSyncDot('ok','Drive ✓'),3000);
+  }
+  updSyncUI();
+}
+
+async function subirArchivo(tipo){
+  let wb,fname;
+  const ahora=new Date();
+  if(tipo==='mes_actual'){
+    wb=await wbMes(ahora.getFullYear(),ahora.getMonth()+1);
+    fname=`olea_${MESES[ahora.getMonth()].toLowerCase()}_${ahora.getFullYear()}.xlsx`;
+  } else if(tipo==='historial'){
+    wb=await wbHistorial();fname='olea_historial.xlsx';
+  } else {
+    wb=wbCostos();fname='olea_costos_precios.xlsx';
+  }
+
+  const blob=new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],
+    {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+
+  // Buscar si existe para PATCH
+  const sr=await(await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${fname}' and trashed=false&fields=files(id)`,
+    {headers:{Authorization:`Bearer ${driveToken}`}}
+  )).json();
+  const fid=sr.files?.[0]?.id;
+
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify({
+    name:fname,mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  })],{type:'application/json'}));
+  form.append('file',blob);
+
+  const up=await fetch(
+    fid?`https://www.googleapis.com/upload/drive/v3/files/${fid}?uploadType=multipart`
+       :'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+    {method:fid?'PATCH':'POST',headers:{Authorization:`Bearer ${driveToken}`},body:form}
+  );
+  if(!up.ok) throw new Error('HTTP '+up.status);
+}
+
+function addLogEntry(tipo,status){
+  const labels={mes_actual:'Mes actual',historial:'Historial',costos:'Costos/precios'};
+  syncLog.unshift({tipo,label:labels[tipo]||tipo,status,ts:new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})});
+  if(syncLog.length>15) syncLog=syncLog.slice(0,15);
+}
+
+async function onConexionRestaurada(){
+  if(syncQueue.length){
+    toast('Conexión restaurada · subiendo datos…','info');
+    await procesarCola();
+  }
+}
+
+// Sync diario: al abrir la app una vez por día
+async function triggerDailySync(){
+  const hoy=fmtDate(new Date());
+  if(lastDailySync===hoy)return;
+  lastDailySync=hoy;
+  await metaSet('lastDailySync',hoy);
+  await encolarSync('mes_actual');
+  await encolarSync('historial');
+  await procesarCola();
+}
+
+// ════════════════════════════════════════════════════════════
+// UI SYNC
+// ════════════════════════════════════════════════════════════
+function setSyncDot(state,label){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  dot.className='sync-dot '+state;
+  if(label) lbl.textContent=label;
+}
+function updSyncUI(){
+  updQueueCard();
+  renderSyncLog();
+  if(syncQueue.length) setSyncDot('queued',`${syncQueue.length} en cola`);
+  else if(driveConectado()) setSyncDot('ok','Drive ✓');
+  else setSyncDot('offline','Drive');
+}
+function updQueueCard(){
+  const card=document.getElementById('queue-card');
+  const sub=document.getElementById('queue-sub');
+  if(syncQueue.length){
+    card.classList.add('visible');
+    const labels={mes_actual:'mes actual',historial:'historial',costos:'costos'};
+    sub.textContent=syncQueue.map(i=>labels[i.tipo]||i.tipo).join(', ')+' · pendiente de subir';
+  } else {
+    card.classList.remove('visible');
+  }
+}
+function renderSyncLog(){
+  const el=document.getElementById('sync-log');
+  if(!syncLog.length){el.innerHTML='<div class="empty">Sin sincronizaciones aún</div>';return;}
+  el.innerHTML='<div class="sync-log">'+
+    syncLog.map(e=>`<div class="log-row">
+      <div><div class="log-file">${e.label}</div></div>
+      <div style="text-align:right">
+        <div class="log-status ${e.status==='ok'?'ok':'fail'}">${e.status==='ok'?'✓ OK':'✗ Error'}</div>
+        <div class="log-time">${e.ts}</div>
+      </div>
+    </div>`).join('')+
+  '</div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// WORKBOOKS XLSX
+// ════════════════════════════════════════════════════════════
+async function wbMes(anio,mes){
+  const key=`${anio}-${String(mes).padStart(2,'0')}`;
+  const cierres=await dbGetAll('cierres');
+  const cierre=cierres.find(c=>c.key===key);
+  const todas=await dbGetAll('ventas');
+  const ventas=todas.filter(v=>v.fecha.startsWith(key)).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const wb=XLSX.utils.book_new();
+  const totI=ventas.reduce((s,v)=>s+v.ingreso,0),totC=ventas.reduce((s,v)=>s+v.costoT,0);
+  const totG=ventas.reduce((s,v)=>s+v.ganancia,0),totV=ventas.reduce((s,v)=>s+v.cant,0);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    [`Olea — ${MESES[mes-1]} ${anio}`],[`Generado: ${new Date().toLocaleString('es-AR')}`],[],
+    ['Indicador','Valor'],
+    ['Ventas (unidades)',cierre?.cant??totV],['Ingresos totales',cierre?.ingresos??totI],
+    ['Costos totales',cierre?.costos??totC],['Ganancia total',cierre?.ganancia??totG],
+    ['Estado',cierre?'Cerrado':'Abierto'],
+  ]),'Resumen');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Fecha','Producto','Cantidad','Tipo','Precio unit.','Costo unit.','Ingreso total','Costo total','Ganancia'],
+    ...ventas.map(v=>[v.fecha,v.nombre,v.cant,v.tipo,v.precio,v.costo,v.ingreso,v.costoT,v.ganancia])
+  ]),'Detalle ventas');
+  const prods={};
+  ventas.forEach(v=>{prods[v.nombre]=prods[v.nombre]||{cant:0,ing:0,cost:0,gan:0};prods[v.nombre].cant+=v.cant;prods[v.nombre].ing+=v.ingreso;prods[v.nombre].cost+=v.costoT;prods[v.nombre].gan+=v.ganancia});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Producto','Unidades','Ingresos','Costos','Ganancia'],
+    ...Object.entries(prods).sort((a,b)=>b[1].gan-a[1].gan).map(([n,d])=>[n,d.cant,d.ing,d.cost,d.gan])
+  ]),'Por producto');
+  return wb;
+}
+async function wbHistorial(){
+  const cierres=(await dbGetAll('cierres')).sort((a,b)=>a.key.localeCompare(b.key));
+  const todas=(await dbGetAll('ventas')).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Olea — Historial completo'],[`Generado: ${new Date().toLocaleString('es-AR')}`],[],
+    ['Mes','Año','Ventas (u)','Ingresos','Costos','Ganancia','Cerrado el'],
+    ...cierres.map(c=>[MESES[c.mes-1],c.anio,c.cant,c.ingresos,c.costos,c.ganancia,c.cerradoEn?.slice(0,10)])
+  ]),'Historial');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Fecha','Producto','Cantidad','Tipo','Precio','Costo','Ingreso','Costo total','Ganancia'],
+    ...todas.map(v=>[v.fecha,v.nombre,v.cant,v.tipo,v.precio,v.costo,v.ingreso,v.costoT,v.ganancia])
+  ]),'Todas las ventas');
+  return wb;
+}
+function wbCostos(){
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Olea — Costos y precios'],[`Actualizado: ${new Date().toLocaleDateString('es-AR')}`],[],
+    ['Insumo','Costo aceite/aceituna','Costo envase','Costo etiqueta','Costo total','Precio mayor','Ganancia mayor','Precio menor','Ganancia menor'],
+    ...productos.map(p=>[p.nombre,p.cAceite,p.cEnvase,p.cEtiqueta,costoTotal(p),p.pm,ganMayor(p),p.pme,ganMenor(p)])
+  ]),'Costos y precios');
+  return wb;
+}
+
+// ════════════════════════════════════════════════════════════
+// DESCARGAS LOCALES
+// ════════════════════════════════════════════════════════════
+async function wbDia(fecha){
+  const ventas=(await dbGetByIdx('ventas','fecha',fecha)).sort((a,b)=>a.ts-b.ts);
+  const totI=ventas.reduce((s,v)=>s+v.ingreso,0);
+  const totC=ventas.reduce((s,v)=>s+v.costoT,0);
+  const totG=ventas.reduce((s,v)=>s+v.ganancia,0);
+  const totV=ventas.reduce((s,v)=>s+v.cant,0);
+  // Por producto
+  const prods={};
+  ventas.forEach(v=>{prods[v.nombre]=prods[v.nombre]||{cant:0,ing:0,cost:0,gan:0};prods[v.nombre].cant+=v.cant;prods[v.nombre].ing+=v.ingreso;prods[v.nombre].cost+=v.costoT;prods[v.nombre].gan+=v.ganancia});
+  const wb=XLSX.utils.book_new();
+  // Hoja resumen
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    [`Olea — Resumen del día ${fecha}`],[`Generado: ${new Date().toLocaleString('es-AR')}`],[],
+    ['Indicador','Valor'],
+    ['Ventas (unidades)', totV],
+    ['Ingresos totales',  totI],
+    ['Costos totales',    totC],
+    ['Ganancia total',    totG],
+  ]),'Resumen');
+  // Hoja detalle venta por venta
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Hora','Producto','Cantidad','Tipo precio','Precio unit.','Costo unit.','Ingreso total','Costo total','Ganancia'],
+    ...ventas.map(v=>[
+      new Date(v.ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
+      v.nombre,v.cant,v.tipo,v.precio,v.costo,v.ingreso,v.costoT,v.ganancia
+    ])
+  ]),'Detalle ventas');
+  // Hoja por producto
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
+    ['Producto','Unidades','Ingresos','Costos','Ganancia'],
+    ...Object.entries(prods).sort((a,b)=>b[1].gan-a[1].gan).map(([n,d])=>[n,d.cant,d.ing,d.cost,d.gan])
+  ]),'Por producto');
+  return wb;
+}
+async function dlDiaHoy(){
+  const fecha=fmtDate(new Date());
+  const wb=await wbDia(fecha);
+  XLSX.writeFile(wb,`olea_dia_${fecha}.xlsx`);
+  toast('Descargando…');
+}
+async function dlMesActual(){
+  const a=new Date();
+  XLSX.writeFile(await wbMes(a.getFullYear(),a.getMonth()+1),`olea_${MESES[a.getMonth()].toLowerCase()}_${a.getFullYear()}.xlsx`);
+  toast('Descargando…');
+}
+async function dlHistorial(){XLSX.writeFile(await wbHistorial(),'olea_historial.xlsx');toast('Descargando…');}
+function dlCostos(){XLSX.writeFile(wbCostos(),'olea_costos_precios.xlsx');toast('Descargando…');}
+
+// ════════════════════════════════════════════════════════════
+// ARRANCAR
+// ════════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
